@@ -1,0 +1,30 @@
+runner-test::cache-test-job:
+  image: alpine:latest
+  stage: test
+  cache:
+    key: cache-testing
+    paths:
+      - cached_file
+  tags:
+    - docker-runner-test
+  script:
+    - cd tests/cache-check
+    - if [ -f cached_file ]; then cat cached_file; fi
+    - ./check.sh
+    - cat cached_file
+  when: manual
+
+runner-test::shell-cache-test-job:
+  stage: test
+  cache:
+    key: cache-testing
+    paths:
+      - cached_file
+  tags:
+    - win-test
+  script:
+    - cd tests/cache-check
+    - if [ -f cached_file ]; then cat cached_file; fi
+    - ./check.sh
+    - cat cached_file
+  when: manual
