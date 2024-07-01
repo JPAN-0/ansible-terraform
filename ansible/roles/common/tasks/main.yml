@@ -1,0 +1,8 @@
+---
+- name: Common tasks on {{ ansible_facts['distribution'] }}.
+  ansible.builtin.include_tasks: "{{ ansible_facts['distribution'] | lower }}.yml"
+  when: ansible_facts['distribution'] == 'Ubuntu'
+
+- name: Common tasks on {{ ansible_facts.os_family }}.
+  ansible.builtin.include_tasks: "{{ ansible_facts.os_family | lower }}.yml"
+  when: ansible_facts.os_family == 'Windows'

@@ -1,0 +1,6 @@
+---
+docker_registry_data_dir: /mnt/registry
+docker_registry_proxy_remoteurl: https://registry-1.docker.io
+docker_registry_port: 5000
+docker_registry_metrics_port: 5001
+docker_registry_network_name: docker_registry_network

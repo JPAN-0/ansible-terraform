@@ -1,0 +1,22 @@
+---
+- name: Enable Prometheus
+  become: true
+  ansible.builtin.systemd:
+    name: prometheus
+    state: started
+    enabled: true
+  listen: enable prometheus
+
+- name: Restart Prometheus
+  become: true
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+    daemon_reload: true
+  listen: restart prometheus
+
+- name: Reload Prometheus Config
+  ansible.builtin.uri:
+    url: "http://{{ prometheus_web_listen_address }}/-/reload"
+    method: POST
+  listen: reload prometheus config

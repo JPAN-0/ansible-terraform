@@ -1,0 +1,23 @@
+ansible==9.1.0
+ansible-core==2.16.2
+certifi==2023.11.17
+cffi==1.16.0
+charset-normalizer==3.3.2
+cryptography==41.0.7
+idna==3.6
+Jinja2==3.1.2
+jmespath==1.0.1
+lxml==5.0.0
+MarkupSafe==2.1.3
+packaging==23.2
+pycparser==2.21
+pyOpenSSL==23.3.0
+pyvmomi==8.0.2.0.1
+PyYAML==6.0.1
+requests==2.31.0
+resolvelib==1.0.1
+six==1.16.0
+tomli==2.0.1
+tomli_w==1.0.0
+urllib3==2.1.0
+vsphere-automation-sdk @ git+https://github.com/vmware/vsphere-automation-sdk-python.git@199b26f1d523023927c172afa6f5b2ebb85dd8f9

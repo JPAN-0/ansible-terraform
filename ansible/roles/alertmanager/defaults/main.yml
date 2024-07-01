@@ -1,0 +1,19 @@
+---
+alertmanager_version: "0.26.0"
+alertmanager_binary_url: https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.linux-amd64.tar.gz
+
+alertmanager_config_dir: /etc/alertmanager
+alertmanager_db_dir: /var/lib/alertmanager
+alertmanager_config_flags_extra: {}
+alertmanager_binary_install_dir: /usr/local/bin
+
+alertmanager_web_listen_address: "0.0.0.0:9093"
+alertmanager_web_external_url: http://localhost:9093/
+
+alertmanager_slack_api_url: ""
+
+alertmanager_template_files:
+  - alertmanager/templates/*.tmpl
+
+alertmanager_receivers: []
+alertmanager_route: {}

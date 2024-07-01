@@ -1,0 +1,11 @@
+[Unit]
+Description=Prometheus VMWare Exporter
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/vmware_exporter
+ExecStart=/opt/vmware_exporter/venv/bin/vmware_exporter -c /opt/vmware_exporter/config.env
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2 @@
+---
+cleanup_windows_gitlab_build_dir: "C:\\Gitlab-Runner\\builds"

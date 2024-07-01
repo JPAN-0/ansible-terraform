@@ -1,0 +1,14 @@
+---
+prometheus_version: 2.45.1
+prometheus_binary_url: https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
+
+prometheus_storage_retention: 30d
+# Available since Prometheus 2.7.0
+# [EXPERIMENTAL] Maximum number of bytes that can be stored for blocks. Units
+# supported: KB, MB, GB, TB, PB.
+prometheus_storage_retention_size: 100GB
+
+prometheus_web_listen_address: "0.0.0.0:9090"
+prometheus_web_external_url: ""
+
+prometheus_static_scrape_targets: []

@@ -1,0 +1,13 @@
+---
+- name: Update apt cache
+  become: true
+  ansible.builtin.apt:
+    upgrade: true
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure extra packages are installed
+  ansible.builtin.apt:
+    pkg: "{{ common_linux_extra_packages }}"
+    state: latest
+    cache_valid_time: 3600

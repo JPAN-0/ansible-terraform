@@ -1,0 +1,17 @@
+---
+- name: Configure grafana server
+  hosts: grafana
+
+  roles:
+    - role: common
+    - role: node_exporter
+    - role: grafana
+      vars:
+        grafana_dashboards_dir: configuration/grafana/dashboards
+        grafana_datasources:
+          - name: Prometheus
+            type: prometheus
+            access: proxy
+            isDefault: true
+            editable: false
+            url: http://{{ hostvars['prometheus-01']['ansible_host'] }}:9090

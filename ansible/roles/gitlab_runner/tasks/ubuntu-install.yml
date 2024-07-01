@@ -1,0 +1,51 @@
+---
+- name: Ensure runner service dir exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ gitlab_runner_dir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ gitlab_runner_user }}"
+    group: "{{ gitlab_runner_user_group }}"
+
+- name: Install required packages
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - qemu
+      - qemu-user-static
+      - binfmt-support
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Add GitLab runner GPG apt key
+  become: true
+  ansible.builtin.apt_key:
+    url: "{{ gitlab_runner_ubuntu_apt_repository_key_url }}"
+    state: present
+
+- name: Add Gitlab Repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64 ] {{ gitlab_runner_ubuntu_apt_repository_url }} {{ ansible_distribution_release }} main
+    state: present
+
+- name: Add Gitlab SRC Repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb-src [arch=amd64 ] {{ gitlab_runner_ubuntu_apt_repository_url }} {{ ansible_distribution_release }} main
+    state: present
+
+- name: Install gitlab-runner
+  become: true
+  ansible.builtin.apt:
+    name: gitlab-runner
+    state: present
+
+- name: Make sure gitlab-runner service is running
+  become: true
+  ansible.builtin.systemd:
+    name: gitlab-runner
+    state: started
+    enabled: true

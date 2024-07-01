@@ -1,0 +1,36 @@
+---
+- name: Ensure node_exporter user exists
+  block:
+    # This should be a normal user
+    # so we just make sure it exists
+    - name: Make sure node_exporter group exists
+      ansible.builtin.group:
+        name: "{{ node_exporter_system_group }}"
+        state: present
+
+    - name: Make sure node_exporter user exists
+      ansible.builtin.user:
+        name: "{{ node_exporter_system_user }}"
+        group: "{{ node_exporter_system_group }}"
+        state: present
+
+- name: Setup node_exporter
+  become: true
+  become_user: "{{ node_exporter_system_user }}"
+  block:
+    - name: Install node_exporter with homebrew
+      community.general.homebrew:
+        name: node_exporter
+        state: present
+
+    - name: Make sure homebrew services is installed
+      ansible.builtin.command: brew services
+      register: _homebrew_services_check
+      environment:
+        PATH: /opt/homebrew/bin:/usr/local/bin:{{ ansible_env.PATH }}
+      changed_when: _homebrew_services_check != 0
+
+    - name: Start node_exporter as homebrew service # noqa: no-changed-when
+      ansible.builtin.command: brew services start node_exporter
+      environment:
+        PATH: /opt/homebrew/bin:/usr/local/bin:{{ ansible_env.PATH }}

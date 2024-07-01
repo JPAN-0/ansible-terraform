@@ -1,0 +1,16 @@
+global:
+  resolve_timeout: 5m
+{% if alertmanager_slack_api_url | string | length %}
+  slack_api_url: {{ alertmanager_slack_api_url | quote }}
+{% endif %}
+
+route:
+  {{ alertmanager_route | to_nice_yaml(indent=2) | indent(2, False) }}
+
+{% if alertmanager_receivers | length %}
+receivers:
+{{ alertmanager_receivers | to_nice_yaml(indent=2) }}
+{% endif %}
+
+templates:
+- /etc/alertmanager/templates/*.tmpl

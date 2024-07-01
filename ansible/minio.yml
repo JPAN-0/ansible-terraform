@@ -1,0 +1,48 @@
+---
+- name: Configure MinIO server
+  hosts: minio
+  become: true
+  vars:
+    runner_cache_bucket: runner-cache
+    file_expiry_days: 1
+
+  roles:
+    - role: common
+    - role: ricsanfre.minio
+      vars:
+        minio_root_user: 
+        minio_root_password: "{{ vault_minio_root_password }}"
+        minio_validate_certificate: false
+        minio_server_env_extra: |
+          # disable auth for prometheus metrics endpoints
+          MINIO_PROMETHEUS_AUTH_TYPE=public
+        minio_server_address: 127.0.0.1 # adding these here until we switch over to the new server
+        minio_server_port: 9091
+        minio_buckets:
+          - name: "{{ runner_cache_bucket }}"
+            policy: read-write
+        minio_users:
+          - name: gitlab-runner
+            password: "{{ vault_minio_gitlab_runner_password }}"
+            buckets_acl:
+              - name: "{{ runner_cache_bucket }}"
+                policy: read-write
+    - role: node_exporter
+
+  post_tasks:
+    - name: Check for existing expiry lifecycle rules
+      ansible.builtin.command: mc ilm rule ls myminio/{{ runner_cache_bucket }} --json --expiry
+      register: __existing_ilm_expiry_rules_query
+      ignore_errors: true
+      changed_when: __existing_ilm_expiry_rules_query.rc != 0
+
+    - name: Check for lifecycle error message
+      ansible.builtin.set_fact:
+        __ilm_expiry_rules_error_message: "{{ __existing_ilm_expiry_rules_query.stdout | from_json | json_query('error.message') }}"
+
+    # If we aren't able to get the lifecycle rules then we assume they don't exist and create a new one
+    - name: Setup runner cache bucket object expiry lifecycle rule if no existing lifecycle config
+      when: __ilm_expiry_rules_error_message == "Unable to get lifecycle"
+      ansible.builtin.command: mc ilm rule add --expire-days {{ file_expiry_days }} myminio/{{ runner_cache_bucket }}
+      register: __adding_ilm_expiry_rules
+      changed_when: __adding_ilm_expiry_rules.rc != 0

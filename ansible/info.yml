@@ -1,0 +1,15 @@
+---
+- name: Print all available facts
+  hosts: all
+  tasks:
+    - name: Display information about a host
+      ansible.builtin.debug:
+        msg:
+          hostname: "{{ ansible_facts.hostname }}"
+          user: "{{ ansible_user }}"
+          ip: "{{ ansible_facts.default_ipv4.address | default('') }}"
+          lsb: "{{ ansible_facts.lsb | default('') }}"
+          vcpus: "{{ ansible_facts.processor_vcpus }}"
+          memory: "{{ ansible_facts.memtotal_mb }}"
+          distro: "{{ ansible_facts.distribution | default('') }}"
+          architecture: "{{ ansible_facts.architecture }}"

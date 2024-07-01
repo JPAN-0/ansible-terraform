@@ -1,0 +1,91 @@
+---
+- name: Create prometheus system group
+  become: true
+  ansible.builtin.group:
+    name: prometheus
+    system: true
+    state: present
+
+- name: Create prometheus system user
+  become: true
+  ansible.builtin.user:
+    name: prometheus
+    group: prometheus
+    system: true
+    state: present
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Create prometheus data directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ prometheus_db_dir }}"
+    state: directory
+    mode: "0755"
+    owner: prometheus
+    group: prometheus
+
+- name: Create prometheus configuration directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ prometheus_config_dir }}"
+    state: directory
+    owner: root
+    group: prometheus
+    mode: "0770"
+
+- name: Get prometheus binary
+  block:
+    - name: Download prometheus binary to local folder
+      ansible.builtin.get_url:
+        url: "{{ prometheus_binary_url }}"
+        dest: /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
+        mode: "0644"
+      register: _download_binary
+
+    - name: Unpack prometheus binary
+      ansible.builtin.unarchive:
+        src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
+        dest: /tmp
+        creates: /tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus
+        remote_src: true
+
+    - name: Install prometheus executables
+      become: true
+      ansible.builtin.copy:
+        src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}
+        dest: "{{ prometheus_binary_install_dir }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: true
+      with_items:
+        - prometheus
+        - promtool
+      notify: restart prometheus
+
+    - name: Install prometheus console config
+      become: true
+      ansible.builtin.copy:
+        src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}/
+        dest: "{{ prometheus_config_dir }}/{{ item }}"
+        mode: "0755"
+        owner: prometheus
+        group: prometheus
+        remote_src: true
+      with_items:
+        - consoles
+        - console_libraries
+      notify: restart prometheus
+
+- name: Create systemd service unit
+  become: true
+  ansible.builtin.template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - enable prometheus
+    - restart prometheus

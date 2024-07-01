@@ -1,0 +1,11 @@
+---
+common_windows_standard_packages:
+  - package_name: git
+    version: 2.21.0
+  - package_name: git-lfs
+    version: 2.7.2
+common_windows_extra_packages: []
+
+common_macosx_extra_packages: []
+
+common_linux_extra_packages: []

@@ -1,0 +1,99 @@
+---
+- name: Ensure grafana directories exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('grafana') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop:
+    - path: /etc/grafana
+    - path: /etc/grafana/datasources
+    - path: /etc/grafana/provisioning
+    - path: /etc/grafana/provisioning/datasources
+    - path: /etc/grafana/provisioning/dashboards
+    - path: /etc/grafana/provisioning/notifiers
+    - path: /etc/grafana/provisioning/notification
+    - path: /etc/grafana/provisioning/plugins
+    - path: "{{ grafana_logs_dir }}"
+      owner: grafana
+    - path: "{{ grafana_data_dir }}"
+      owner: grafana
+    - path: "{{ grafana_data_dir }}/dashboards"
+      owner: grafana
+    - path: "{{ grafana_data_dir }}/plugins"
+      owner: grafana
+
+- name: Create grafana main configuration file
+  become: true
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Create/Update datasources file (provisioning)
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/grafana/provisioning/datasources/ansible.yml
+    content: |
+      apiVersion: 1
+      datasources:
+      {{ grafana_datasources | to_nice_yaml }}
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Create/Update dashboards file (provisioning)
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/grafana/provisioning/dashboards/ansible.yml
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          options:
+            path: "{{ grafana_data_dir }}/dashboards"
+    backup: false
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Register previously copied dashboards
+  ansible.builtin.find:
+    paths: "{{ grafana_data_dir }}/dashboards"
+    hidden: true
+    patterns:
+      - "*.json"
+  register: __dashboards_present
+
+- name: Import grafana dashboards
+  become: true
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ grafana_data_dir }}/dashboards/{{ item | basename }}"
+    owner: grafana
+    group: grafana
+    mode: "0640"
+  with_fileglob:
+    - "{{ grafana_dashboards_dir }}/*.json"
+  notify: restart grafana
+  register: __dashboards_copied
+
+- name: Remove dashboards not present on deployer machine (synchronize)
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ __dashboards_present_list | difference(__dashboards_copied_list) }}"
+  vars:
+    __dashboards_present_list: "{{ __dashboards_present | json_query('files[*].path') | default([]) }}"
+    __dashboards_copied_list: "{{ __dashboards_copied | json_query('results[*].dest') | default([]) }}"

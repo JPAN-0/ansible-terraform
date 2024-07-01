@@ -1,0 +1,9 @@
+---
+- name: Install adb package
+  ansible.builtin.apt:
+    pkg:
+      - android-sdk-platform-tools
+    state: latest
+    update_cache: true
+    only_upgrade: true
+    cache_valid_time: 3600

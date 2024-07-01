@@ -1,0 +1,66 @@
+---
+- name: Configure Prometheus server
+  hosts: prometheus
+
+  roles:
+    - role: common
+    - role: prometheus
+      vars:
+        prometheus_static_scrape_targets:
+          - job_name: linux-docker-runner-node-exporter
+            group: linux-runners
+            servers: "{{ groups['linux_docker_runners'] }}"
+            metrics_port: "9100"
+          - job_name: windows-docker-runner-windows-exporter
+            group: windows-runners
+            servers: "{{ groups['windows_docker_runners'] }}"
+            metrics_port: "9100"
+          - job_name: minio-bucket-metrics
+            group: minio
+            servers: "{{ groups['minio'] }}"
+            metrics_port: "{{ minio_server_port }}"
+            metrics_path: /minio/v2/metrics/bucket
+          - job_name: minio-node-metrics
+            group: minio
+            servers: "{{ groups['minio'] }}"
+            metrics_port: "{{ minio_server_port }}"
+            metrics_path: /minio/v2/metrics/node
+          - job_name: docker-cache-node-exporter
+            group: docker-registry
+            servers: "{{ groups['docker_cache'] }}"
+            metrics_port: 9100
+          - job_name: docker-cache-registry-metrics
+            group: docker-registry
+            servers: "{{ groups['docker_cache'] }}"
+            metrics_port: 5001
+    - role: alertmanager
+      vars:
+        alertmanager_version: "0.26.0"
+        alertmanager_slack_api_url: "{{ vault_alertmanager_slack_api_url }}"
+        alertmanager_receivers:
+          - name: "null"
+          - name: inf-gitlab-runners-slack
+            slack_configs:
+              - channel: "#inf-gitlab-runners"
+                send_resolved: true
+                # this is ugly, but it's the only way to make go templating work
+                # with ansible templating...
+                color: "{{ '{{' }} template \"slack.color\" . {{ '}}' }}"
+                title: "{{ '{{' }} template \"slack.title\" . {{ '}}' }}"
+                text: "{{ '{{' }} template \"slack.text\" . {{ '}}' }}"
+        alertmanager_route:
+          receiver: "null"
+          group_by:
+            - alertname
+            - group
+          routes:
+            - receiver: "null"
+              match:
+                alertname: Watchdog
+            - receiver: inf-gitlab-runners-slack
+              continue: true
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 12h
+
+    - role: node_exporter

@@ -1,0 +1,10 @@
+---
+collections:
+  - name: ansible.posix
+    version: 1.5.4
+  - name: community.general
+    version: 7.5.0
+
+roles:
+  - name: ricsanfre.minio
+    version: v1.1.4

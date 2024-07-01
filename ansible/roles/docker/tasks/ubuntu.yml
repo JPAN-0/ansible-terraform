@@ -1,0 +1,70 @@
+---
+# ---------------------------------
+# Tasks for Ubuntu - Install Docker
+# ---------------------------------
+
+- name: Include variables
+  ansible.builtin.include_vars: main.yml
+
+- name: Remove any old distro docker versions
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - docker.io
+      - docker-doc
+      - docker-compose
+      - podman-docker
+      - containerd
+      - runc
+    state: absent
+
+- name: Install required system packages
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - curl
+      - apt-transport-https
+      - ca-certificates
+      - software-properties-common
+    state: latest
+    update_cache: true
+    only_upgrade: true
+    cache_valid_time: 3600
+
+- name: Install gpg-agent
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - gpg-agent
+    state: latest
+    only_upgrade: true
+
+- name: Add Docker GPG apt Key
+  become: true
+  ansible.builtin.apt_key:
+    url: "{{ docker_ubuntu_gpg_key_url }}"
+    state: present
+
+- name: Add Docker Repository
+  become: true
+  ansible.builtin.apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    state: present
+
+- name: Update apt and install docker-ce
+  become: true
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+    state: present
+
+- name: Add Docker Daemon configuration
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: "{{ docker_daemon_config | to_json }}"
+    mode: "0644"
+  vars:
+    docker_daemon_config:
+      registry-mirrors: "{{ docker_registry_mirror_addresses }}"
+  notify: restart dockerd

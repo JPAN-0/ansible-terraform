@@ -1,0 +1,8 @@
+---
+gitlab_runner_windows_version: 16.7.0
+gitlab_runner_windows_exe_url: https://gitlab-runner-downloads.s3.amazonaws.com/v{{ gitlab_runner_windows_version }}/binaries/gitlab-runner-windows-amd64.exe
+gitlab_runner_binary_install_dir: C:\Gitlab-Runner
+gitlab_runner_windows_dir: \Gitlab-Runner
+gitlab_runner_windows_config_file: "{{ gitlab_runner_windows_dir }}\\config.toml"
+gitlab_runner_registration_windows_config_file: "{{ gitlab_runner_windows_dir }}\\registration_config.toml"
+gitlab_runner_config_template_values: ""

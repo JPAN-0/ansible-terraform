@@ -1,0 +1,57 @@
+---
+- name: Cleanup docker images on ubuntu
+  when: ansible_facts.distribution == 'Ubuntu' and cleanup_docker_cron_enable
+  block:
+    - name: Clears out the docker volumes every day
+      become: true
+      ansible.builtin.cron:
+        state: present
+        minute: 0
+        hour: 2
+        weekday: "*"
+        name: Clear out docker volumes every day
+        user: root
+        job: docker volume prune --all -f
+
+    - name: Clears out the docker images
+      become: true
+      ansible.builtin.cron:
+        state: present
+        minute: 0
+        hour: 2
+        weekday: "*"
+        name: Clear out docker images every day
+        user: root
+        job: docker image prune --all -f
+
+- name: Cleanup docker images on Windows
+  when: ansible_facts['distribution'] == 'Microsoft Windows Server 2022 Standard' and cleanup_docker_cron_enable
+  block:
+    - name: Clears out the docker volumes every day
+      community.windows.win_scheduled_task:
+        name: Clear out Docker Volumes
+        actions:
+          - path: cmd.exe
+            arguments: docker volume prune --all -f
+        triggers:
+          - type: daily
+            start_boundary: "2017-10-09T09:00:00"
+        username: SYSTEM
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Clears out the docker images
+      community.windows.win_scheduled_task:
+        name: Clear out Docker Images Every Tuesday
+        actions:
+          - path: cmd.exe
+            arguments: docker image prune --all -f
+        triggers:
+          - type: weekly
+            days_of_week: tuesday
+            start_boundary: "2017-10-09T09:00:00"
+        username: SYSTEM
+        run_level: highest
+        state: present
+        enabled: true

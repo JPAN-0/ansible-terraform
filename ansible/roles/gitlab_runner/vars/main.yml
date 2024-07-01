@@ -1,0 +1,4 @@
+---
+gitlab_runner_dir: /etc/gitlab-runner
+gitlab_runner_config_file: "{{ gitlab_runner_dir }}/config.toml"
+gitlab_runner_registration_config_file: "{{ gitlab_runner_dir }}/registration_config.toml"

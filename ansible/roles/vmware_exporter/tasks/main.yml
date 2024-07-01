@@ -1,0 +1,37 @@
+---
+- name: Install python
+  ansible.builtin.apt:
+    pkg:
+      - python3
+      - python3-pip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install virtualenv
+  ansible.builtin.pip:
+    name:
+      - virtualenv
+
+- name: Install python packages
+  ansible.builtin.pip:
+    name:
+      - vmware_exporter
+      - requests
+    virtualenv: /opt/vmware_exporter/venv
+
+- name: Add vmware exporter config
+  ansible.builtin.template:
+    src: vmware_exporter_config.env.j2
+    dest: /opt/vmware_exporter/config.env
+    mode: "0644"
+  notify: restart vmware exporter
+
+- name: Add vmware exporter systemd config
+  ansible.builtin.copy:
+    src: vmware_exporter.service
+    dest: /etc/systemd/system/vmware_exporter.service
+    mode: "0644"
+  notify:
+    - enable vmware exporter
+    - restart vmware exporter

@@ -1,0 +1,23 @@
+---
+- name: Include variables
+  ansible.builtin.include_vars: main.yml
+
+- name: Create Mirantis Container Runtime Dest File
+  ansible.windows.win_file:
+    path: C:\Mirantis
+    state: directory
+
+- name: Download Mirantis Container Runtime
+  ansible.windows.win_get_url:
+    url: https://get.mirantis.com/install.ps1
+    dest: C:\Mirantis\install.ps1
+  register: docker_installer_downloaded
+
+- name: Restart OS if required # noqa: no-handler
+  ansible.windows.win_reboot:
+  when: docker_installer_downloaded.changed
+
+- name: Install Mirantis Container Runtime
+  ansible.windows.win_shell: .\install.ps1
+  args:
+    chdir: C:\Mirantis\

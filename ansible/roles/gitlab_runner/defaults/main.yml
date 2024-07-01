@@ -1,0 +1,18 @@
+---
+gitlab_runner_user: gitlab-runner
+gitlab_runner_user_group: gitlab-runner
+gitlab_runner_user_extra_groups: []
+gitlab_runner_metrics_address: ""
+
+gitlab_runner_global_config:
+  concurrent: 1
+  check_interval: 0
+  shutdown_timeout: 0
+
+  listen_address: "{{ gitlab_runner_metrics_address }}"
+
+  session_server:
+    session_timeout: 1800
+
+gitlab_runner_runner_config:
+  executor: shell

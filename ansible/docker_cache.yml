@@ -1,0 +1,11 @@
+---
+- name: Configure Docker Cache Server
+  hosts: docker_cache
+
+  roles:
+    - role: common
+    - role: docker
+    - role: docker_registry
+      vars:
+        docker_registry_enable_ui: true
+    - role: node_exporter

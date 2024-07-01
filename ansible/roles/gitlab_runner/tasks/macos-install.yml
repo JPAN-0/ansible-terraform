@@ -1,0 +1,54 @@
+---
+- name: Install GitLab runner binary
+  block:
+    - name: Download arm64 mac gitlab binary
+      ansible.builtin.get_url:
+        url: "{{ gitlab_runner_macos_m1_binary_url }}"
+        dest: /tmp/gitlab-runner-{{ gitlab_runner_macos_version }}
+        mode: "0770"
+      register: _download_binary
+      when: ansible_facts.architecture == 'arm64'
+
+    - name: Download x86_64 mac gitlab binary
+      ansible.builtin.get_url:
+        url: "{{ gitlab_runner_macos_intel_binary_url }}"
+        dest: /tmp/gitlab-runner-{{ gitlab_runner_macos_version }}
+        mode: "0770"
+      when: ansible_facts.architecture == 'x86_64'
+
+    - name: Install gitlab-runner executable
+      ansible.builtin.copy:
+        src: /tmp/gitlab-runner-{{ gitlab_runner_macos_version }}
+        dest: "{{ gitlab_runner_binary_install_dir }}/gitlab-runner"
+        mode: "0755"
+        owner: root
+        group: wheel
+        remote_src: true
+
+- name: Install GitLab runner service
+  become: true
+  become_user: "{{ gitlab_runner_user }}"
+  ansible.builtin.command: "{{ gitlab_runner_binary_install_dir }}/gitlab-runner install"
+  args:
+    chdir: /Users/{{ gitlab_runner_user }}
+    creates: "{{ gitlab_runner_service_file }}"
+
+- name: Check if service is running
+  become: true
+  become_user: "{{ gitlab_runner_user }}"
+  ansible.builtin.command: "{{ gitlab_runner_binary_install_dir }}/gitlab-runner status"
+  register: service_status_check
+  args:
+    chdir: /Users/{{ gitlab_runner_user }}
+  # status command has non-zero error code if service isn't running
+  # we're ok with that so ignore the error
+  failed_when: service_status_check.rc >= 2
+  changed_when: service_status_check.rc != 0
+
+- name: Make sure service is running # noqa: no-changed-when
+  become: true
+  become_user: "{{ gitlab_runner_user }}"
+  ansible.builtin.command: "{{ gitlab_runner_binary_install_dir }}/gitlab-runner start"
+  args:
+    chdir: /Users/{{ gitlab_runner_user }}
+  when: service_status_check.rc != 0

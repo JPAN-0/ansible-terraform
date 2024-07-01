@@ -1,0 +1,101 @@
+---
+- name: Get runner config information
+  become: true
+  block:
+    - name: Read existing GitLab Runner config file
+      ansible.builtin.slurp:
+        src: "{{ gitlab_runner_config_file }}"
+      register: __runner_raw_config
+
+    - name: Set runner config fact
+      ansible.builtin.set_fact:
+        __existing_runner_config: "{{ __runner_raw_config.content | b64decode | from_toml }}"
+
+    - name: Get existing registered runners
+      ansible.builtin.set_fact:
+        __existing_runners: "{{ __existing_runner_config.runners | default([]) }}"
+        __existing_runner_count: "{{ __existing_runner_config.runners | default([]) | length }}"
+      failed_when: __existing_runners | length  > 1
+
+    - name: Print existing runner count
+      ansible.builtin.debug:
+        msg: "{{ __existing_runner_count }} runners registered"
+
+    - name: Check if metrics listen_address has changed and requires a service restart
+      ansible.builtin.set_fact:
+        __metrics_address_changed: "{{ __existing_runner_config.listen_address | default('') != gitlab_runner_global_config.listen_address }}"
+
+    - name: Say if restart due to listen address change   is required
+      when: __metrics_address_changed
+      ansible.builtin.debug:
+        msg: Metrics address has changed so service will restart
+
+- name: Configure new runner
+  when: __existing_runner_count == 0
+  block:
+    - name: Add gitlab-runner registration config.toml file
+      become: true
+      ansible.builtin.template:
+        src: config.toml.j2
+        dest: "{{ gitlab_runner_registration_config_file }}"
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user_group }}"
+        mode: "0644"
+      vars:
+        cfg_template_values: "{{ gitlab_runner_global_config | ansible.builtin.combine({'runners': [gitlab_runner_runner_config]}) }}"
+
+    # On Ubuntu ansible seems to complain if you try to run the gitlab runner
+    # binary as a different user
+    - name: Register Gitlab Runner on Ubuntu using registration config.toml file # noqa: no-changed-when
+      become: true
+      ansible.builtin.shell: >
+        gitlab-runner register -n
+        --template-config {{ gitlab_runner_registration_config_file }}
+        --url {{ gitlab_runner_gitlab_server_url | mandatory }}
+        --token {{ gitlab_runner_registration_token | mandatory }}
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    # On Mac the gitlab-runner registration has to be run by the user that the
+    # gitlab runner service will be running as, otherwise it writes the config
+    # to /etc/gitlab-runner
+    - name: Register Gitlab Runner on MacOSX using registration config.toml file # noqa: no-changed-when
+      become: true
+      become_user: "{{ gitlab_runner_user }}"
+      ansible.builtin.shell: >
+        gitlab-runner register -n
+        --template-config {{ gitlab_runner_registration_config_file }}
+        --url {{ gitlab_runner_gitlab_server_url | mandatory }}
+        --token {{ gitlab_runner_registration_token | mandatory }}
+      environment:
+        PATH: /usr/local/bin:{{ ansible_env.PATH }}
+      when: ansible_facts.distribution == 'MacOSX'
+
+- name: Configure existing runner
+  when: __existing_runner_count == 1
+  block:
+    - name: Set existing runner configuration
+      ansible.builtin.set_fact:
+        __existing_runner_config:
+          name: "{{ __existing_runners[0]['name'] }}"
+          url: "{{ __existing_runners[0]['url'] }}"
+          id: "{{ __existing_runners[0]['id'] | int }}"
+          token: "{{ __existing_runners[0]['token'] }}"
+
+    - name: Update gitlab-runner config.toml file
+      become: true
+      ansible.builtin.template:
+        src: config.toml.j2
+        dest: "{{ gitlab_runner_config_file }}"
+        owner: "{{ gitlab_runner_user }}"
+        group: "{{ gitlab_runner_user_group }}"
+        mode: "0644"
+      vars:
+        runner_configuration: "{{ __existing_runner_config | ansible.builtin.combine(gitlab_runner_runner_config) }}"
+        cfg_template_values: "{{ gitlab_runner_global_config | ansible.builtin.combine({'runners': [runner_configuration]}) }}"
+
+- name: Restart the service if required # noqa: no-changed-when
+  become: true
+  ansible.builtin.command: gitlab-runner restart
+  environment:
+    PATH: /usr/local/bin:{{ ansible_env.PATH }}
+  when: __metrics_address_changed

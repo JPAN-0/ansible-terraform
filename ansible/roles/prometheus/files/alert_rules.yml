@@ -1,0 +1,67 @@
+---
+groups:
+  - name: General
+    rules:
+      - alert: Watchdog
+        annotations:
+          description: |
+            This is an alert meant to ensure that the entire alerting pipeline is functional.
+            This alert is always firing, therefore it should always be firing in Alertmanager
+            and always fire against a receiver. There are integrations with various notification
+            mechanisms that send a notification when this alert is not firing. For example the
+            "DeadMansSnitch" integration in PagerDuty.
+          runbook_url: https://github.com/kubernetes-monitoring/kubernetes-mixin/tree/master/runbook.md#alert-name-watchdog
+          summary: An alert that should always be firing to certify that Alertmanager is working properly.
+        expr: vector(1)
+        labels:
+          severity: none
+
+  - name: Instances
+    rules:
+      - alert: Instance Down
+        expr: up{job=~".+-(node|windows)-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Instance Down
+          description: |-
+            `{{ .Labels.name }}`:{{ .Labels.instance }} has been down for more than 1 minute.
+
+      # uses node-exporter metrics but need to account for differences between linux and mac
+      - alert: DiskSpaceUsed
+        expr: 1 - (node_filesystem_avail_bytes{group="linux-runners"} / node_filesystem_size_bytes{group="linux-runners"}) > 0.8
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Instance is low on disk space
+          description: |-
+            `{{ .Labels.name }}` is using over {{ $value | humanizePercentage }}% of its disk.
+          message: |-
+            {{ .Labels.device }} mounted at {{ .Labels.mountpoint }}
+
+      - alert: DiskSpaceUsed
+        expr: (node_filesystem_free_bytes{group="macos-runners", mountpoint="/"} / node_filesystem_size_bytes{group="macos-runners", mountpoint="/"}) > 0.8
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Instance is low on disk space
+          description: |-
+            `{{ .Labels.name }}` is using over {{ $value | humanizePercentage }}% of its disk.
+          message: |-
+            {{ .Labels.device }} mounted at {{ .Labels.mountpoint }}
+
+      # uses windows-exporter metrics so only on windows instances
+      - alert: DiskSpaceUsage
+        expr: 1 - (windows_logical_disk_free_bytes / windows_logical_disk_size_bytes) > 0.8
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: Instance is low on disk space
+          description: |-
+            `{{ .Labels.name }}` is using over {{ $value | humanizePercentage }}% of its disk.
+          message: |-
+            {{ .Labels.volume }} volume

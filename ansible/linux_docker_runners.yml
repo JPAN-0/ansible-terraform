@@ -1,0 +1,45 @@
+---
+- name: Configure Linux Docker GitLab Runners
+  hosts: linux_docker_runners:linux_docker_xl_runners
+
+  roles:
+    - role: common
+    - role: docker
+      vars:
+        docker_registry_mirror_addresses:
+    - role: gitlab_runner
+      vars:
+        gitlab_runner_user_extra_groups: [docker]
+        # changing the metrics address causes
+        # a restart of the runner service
+        gitlab_runner_metrics_address: "0.0.0.0:9252"
+        gitlab_runner_registration_token: "{{ vault_gitlab_runner_reg_token }}"
+        gitlab_runner_gitlab_server_url: "{{ gitlab_server }}"
+        gitlab_runner_runner_config:
+          executor: docker
+          cache:
+            MaxUploadedArchiveSize: 0
+            Type: s3
+            Shared: true
+            s3:
+              ServerAddress: "{{minio_server_address}}"
+              AccessKey: "{{vault_minio_access_key}}"
+              SecretKey: "{{vault_minio_secret_key}}"
+              BucketName: "{{minio_cache_bucket}}"
+              BucketLocation: eu-west-1
+              Insecure: true
+          docker:
+            tls_verify: true
+            image: docker:stable
+            privileged: true
+            disable_entrypoint_overwrite: false
+            oom_kill_disable: false
+            devices: []
+            disable_cache: false
+            volumes: [/certs/client]
+            shm_size: 0
+    - role: node_exporter
+    - role: cleanup
+      vars:
+        cleanup_schedule_docker_image_removal: true
+        cleanup_schedule_docker_volume_removal: true

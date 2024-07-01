@@ -1,0 +1,10 @@
+---
+- name: Download Latest Stable Docker binary
+  ansible.windows.win_get_url:
+    url: "{{ windows_exporter_download_url }}"
+    dest: C:\windows_exporter.msi
+
+- name: Install Windows exporter from executable
+  ansible.windows.win_package:
+    path: C:\windows_exporter.msi
+    state: present

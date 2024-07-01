@@ -1,0 +1,4 @@
+---
+prometheus_binary_install_dir: /usr/local/bin
+prometheus_config_dir: /etc/prometheus
+prometheus_db_dir: /var/lib/prometheus

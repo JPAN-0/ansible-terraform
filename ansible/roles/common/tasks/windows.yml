@@ -1,0 +1,58 @@
+---
+- name: Ensure chocolatey is installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: chocolatey
+    state: present
+
+- name: Ensure standard packages are installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ item.package_name }}"
+    version: "{{ item.version }}"
+    allow_empty_checksums: true
+  with_items: "{{ common_windows_standard_packages }}"
+  register: __common_standard_package_install_response
+
+- name: Reboot if any new packages installed # noqa: no-handler
+  ansible.windows.win_reboot:
+  when: __common_standard_package_install_response.changed
+
+- name: Ensure extra packages are installed
+  chocolatey.chocolatey.win_chocolatey:
+    name: "{{ item.package_name }}"
+    version: "{{ item.version }}"
+    allow_empty_checksums: true
+  with_items: "{{ common_windows_extra_packages }}"
+  register: __common_extra_package_install_response
+
+- name: Reboot if any extra packages installed # noqa: no-handler
+  ansible.windows.win_reboot:
+  when: __common_extra_package_install_response.changed
+
+- name: Ensure long paths are enabled for git
+  ansible.windows.win_shell: git config --system core.longPaths true
+
+- name: Increase disk size
+  ansible.windows.win_powershell:
+    script: |
+      function List-Disks {
+          'list disk' | diskpart |
+              Where-Object { $_ -match 'disk (\d+)\s+online\s+\d+ .?b\s+\d+ [gm]b' } |
+              ForEach-Object { $matches[1] }
+      }
+
+      function List-Partitions($disk) {
+          "select disk $disk", "list partition" | diskpart |
+              Where-Object { $_ -match 'partition (\d+)' } |
+              ForEach-Object { $matches[1] }
+      }
+
+      function Extend-Partition($disk, $part) {
+          "select disk $disk","select partition $part","extend" | diskpart | Out-Null
+      }
+
+      List-Disks | ForEach-Object {
+          $disk = $_
+          List-Partitions $disk | ForEach-Object {
+              Extend-Partition $disk $_
+          }
+      }

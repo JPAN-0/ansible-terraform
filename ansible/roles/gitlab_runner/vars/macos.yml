@@ -1,0 +1,12 @@
+---
+gitlab_runner_macos_version: 16.7.0
+gitlab_runner_macos_m1_binary_url: https://gitlab-runner-downloads.s3.amazonaws.com/v{{ gitlab_runner_macos_version }}/binaries/gitlab-runner-darwin-arm64
+gitlab_runner_macos_intel_binary_url: https://gitlab-runner-downloads.s3.amazonaws.com/v{{ gitlab_runner_macos_version }}/binaries/gitlab-runner-darwin-amd64
+
+gitlab_runner_binary_install_dir: /usr/local/bin
+
+gitlab_runner_dir: /Users/{{ gitlab_runner_user }}/.gitlab-runner
+gitlab_runner_config_file: "{{ gitlab_runner_dir }}/config.toml"
+
+gitlab_runner_service_dir: /Users/{{ gitlab_runner_user }}/Library/LaunchAgents
+gitlab_runner_service_file: "{{ gitlab_runner_service_dir }}/gitlab-runner.plist"

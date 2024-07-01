@@ -1,0 +1,44 @@
+---
+- name: Setup user
+  ansible.builtin.include_tasks: user.yml
+
+- name: Install GitLab runner on Ubuntu
+  when: ansible_facts.distribution == 'Ubuntu'
+  block:
+    - name: Setup Ubuntu vars
+      ansible.builtin.include_vars:
+        file: ubuntu.yml
+
+    - name: Run Ubuntu install tasks
+      ansible.builtin.include_tasks:
+        file: ubuntu-install.yml
+
+- name: Install GitLab runner on MacOSX
+  when: ansible_facts.distribution == 'MacOSX'
+  block:
+    - name: Setup MacOS vars
+      ansible.builtin.include_vars:
+        file: macos.yml
+
+    - name: Run MacOS install tasks
+      ansible.builtin.include_tasks:
+        file: macos-install.yml
+
+- name: Install Gitlab runner on Windows
+  when: ansible_facts.os_family == 'Windows'
+  block:
+    - name: Setup Windows vars
+      ansible.builtin.include_vars:
+        file: windows.yml
+
+    - name: Run Windows install tasks
+      ansible.builtin.include_tasks:
+        file: windows-install.yml
+
+- name: Configure the GitLab runner when OS family is Ubuntu or MacOS
+  when: ansible_facts.os_family != 'Windows'
+  ansible.builtin.include_tasks: configure.yml
+
+- name: Configure the GitLab runner when OS family is Windows
+  when: ansible_facts.os_family == 'Windows'
+  ansible.builtin.include_tasks: configure-windows.yml

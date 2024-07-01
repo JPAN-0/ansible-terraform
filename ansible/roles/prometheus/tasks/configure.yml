@@ -1,0 +1,80 @@
+---
+- name: Add prometheus config
+  become: true
+  ansible.builtin.copy:
+    src: prometheus-config.yml
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+  notify: reload prometheus config
+
+- name: Make sure scrape_configs directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ prometheus_config_dir }}/scrape_configs"
+    owner: prometheus
+    group: prometheus
+    state: directory
+    mode: "0755"
+
+- name: Register any previously copied scrape configs
+  become: true
+  ansible.builtin.find:
+    paths:
+      - "{{ prometheus_config_dir }}/scrape_configs"
+    hidden: true
+    patterns:
+      - "*.yml"
+  register: __scrape_configs_present
+
+- name: Add scrape configs
+  become: true
+  vars:
+    job_name: "{{ item.job_name }}"
+    server_group: "{{ item.group }}"
+    servers_to_scrape: "{{ item.servers }}"
+    scrape_interval: "{{ item.scrape_interval | default('30s') }}"
+    scrape_timeout: "{{ item.scrape_timeout | default('10s') }}"
+    metrics_scheme: "{{ item.metrics_scheme | default('http') }}"
+    metrics_port: "{{ item.metrics_port | default('9100') }}"
+    metrics_path: "{{ item.metrics_path | default('/metrics') }}"
+  ansible.builtin.template:
+    src: static_scrape_config.yml.j2
+    dest: "{{ prometheus_config_dir }}/scrape_configs/{{ item.job_name }}-scrape-config.yml"
+    mode: "0644"
+    owner: prometheus
+    group: prometheus
+  with_items: "{{ prometheus_static_scrape_targets }}"
+  register: __scrape_configs_deployed
+  notify: reload prometheus config
+
+- name: Remove scrape configs not present on deployer machine (synchronize)
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ __scrape_configs_present_list | difference(__scrape_configs_deployed_list) }}"
+  vars:
+    __scrape_configs_present_list: "{{ __scrape_configs_present | json_query('files[*].path') | default([]) }}"
+    __scrape_configs_deployed_list: "{{ __scrape_configs_deployed | json_query('results[*].dest') | default([]) }}"
+  notify: reload prometheus config
+
+- name: Create rules directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ prometheus_config_dir }}/rules"
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+    state: directory
+
+- name: Add prometheus rules
+  become: true
+  ansible.builtin.copy:
+    src: alert_rules.yml
+    dest: "{{ prometheus_config_dir }}/rules/alerts.yml"
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+  notify: reload prometheus config

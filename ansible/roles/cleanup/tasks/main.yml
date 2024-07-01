@@ -1,0 +1,15 @@
+---
+- name: Enable scheduled docker image cleanup
+  when: cleanup_schedule_docker_image_removal
+  ansible.builtin.include_tasks:
+    file: docker_image_removal.yml
+
+- name: Enable scheduled docker volume cleanup
+  when: cleanup_schedule_docker_volume_removal
+  ansible.builtin.include_tasks:
+    file: docker_volume_removal.yml
+
+- name: Enable scheduled build directory cleanup
+  when: cleanup_schedule_build_dir_removal
+  ansible.builtin.include_tasks:
+    file: build_dir_removal.yml

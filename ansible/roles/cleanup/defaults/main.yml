@@ -1,0 +1,4 @@
+---
+cleanup_schedule_docker_image_removal: false
+cleanup_schedule_docker_volume_removal: false
+cleanup_schedule_build_dir_removal: false
