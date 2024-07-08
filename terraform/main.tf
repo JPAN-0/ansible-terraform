@@ -20,13 +20,5 @@ data "vsphere_network" "network" {
 }
 
 locals {
-  vcenter_devops_folders = {
-    core                   = "Core"
-    prod_linux_runner      = "Docker/docker-linux"
-    staging                = "Staging/docker-linux"
-    windows_staging        = "Staging"
-    windows_staging_docker = "Staging/docker-windows"
-    unreal_staging         = "Staging/unreal"
-    docker                 = "Docker"
   }
 }
