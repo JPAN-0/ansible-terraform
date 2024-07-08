@@ -1,4 +1,4 @@
-# GitLab Onsite Runners
+# GitLab vCenter Runners
 
 There are four main sections to this repo.
 
